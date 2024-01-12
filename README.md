@@ -4,9 +4,9 @@ Este es un pequeño proyecto personal el cual consiste en el desarrollo de un re
 
 Vídeos:
 
-- ![Video](https://youtube.com/shorts/D2IpWZCjyh8?feature=share)
+- [Vídeo Demo Alarma](https://youtube.com/shorts/D2IpWZCjyh8?feature=share)
 
-- ![Vídeo](https://youtube.com/shorts/UrRRpMmkkAI?feature=share)
+- [Vídeo Demo App](https://youtube.com/shorts/UrRRpMmkkAI?feature=share)
 
 ![](https://github.com/lucasigna/reloj-bluetooth/blob/main/media/banner.jpg)
 
