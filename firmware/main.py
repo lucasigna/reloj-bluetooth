@@ -1,18 +1,47 @@
 from machine import Pin, Timer, RTC
-from time import sleep_ms
 import utime
 import ubluetooth
-from esp32 import raw_temperature
 import json
-import uos
 import ntptime
 import network
-# MAXIMO 6 ALARMAS
-#alarms = []
-# Establece la configuración de la red WiFi
-SSID = 'Mokersa'
-PASSWORD = '01Revuelto01Gramajo09'
+from tm1637 import TM1637
 
+# Configuración de los pines CLK y DIO del TM1637
+clk_pin = Pin(23) 
+dio_pin = Pin(22) 
+
+# Pin del buzzer
+timbre = Pin(21,Pin.OUT)
+timbre.value(0) # Lo pongo en cero
+# Pin del boton para apagar la alarma
+stop = Pin(19,Pin.IN)
+
+# Inicialización del objeto TM1637
+tm = TM1637(clk=clk_pin, dio=dio_pin)
+
+# Muesto 00:00 por defecto
+tm.numbers(0, 0)
+
+# Establece la configuración de la red WiFi
+def getWifi():
+    try:
+        with open("wifi.json", "r") as f:
+            content = f.read()
+            # Verificar si el contenido está vacío
+            if content:
+                wifi = json.loads(content)
+                return wifi
+            else:
+                print("El archivo 'wifi.json' está vacío.")
+                return []
+    except OSError:
+        return []  # Devuelve una lista vacía si no se puede cargar el archivo
+    
+wifi = getWifi() # Obtengo los datos de wifi guardados en wifi.json
+SSID = wifi['ssid']
+PASSWORD = wifi['password']
+
+# Me conecto al wifi
 sta_if = network.WLAN(network.STA_IF)
 sta_if.active(True)
 sta_if.connect(SSID, PASSWORD)
@@ -35,6 +64,7 @@ else:
 
 rtc.datetime((current_time[0], current_time[1], current_time[2], 0, hour, current_time[4], current_time[5], 0))
 
+# Clase para manejar el almacenamiento de alarmas en flash
 class AlarmStorage:
 
     def __init__(self, filename="alarms.json"):
@@ -115,32 +145,27 @@ class BLE():
             buffer = self.ble.gatts_read(self.rx)
             message = ''
             message = buffer.decode('UTF-8')[:-1]
-            #print(message)
             # Puedes almacenar los fragmentos recibidos en una lista
             if not hasattr(self, 'received_data'):
                 self.received_data = []
             
             self.received_data.append(message)
 
-            # Verifica si el mensaje está completo (por ejemplo, si contiene ']')
+            # Verifica si el mensaje está completo
             if ']' in message:
                 # Reconstruye el mensaje completo
                 full_message = ''.join(self.received_data)
                 # Reinicia la lista de fragmentos para el próximo mensaje
                 self.received_data = []
-                #print(full_message)
                 self.alarms = json.loads(full_message)
-                # Procesa el mensaje completo
-                #self.process_received_message(full_message)
             
             
-            if message == 'get-alarms':
-                #print('get-alarms')
+            if message == 'get-alarms': # La app me solicita las alarmas guardadas
                 self.received_data = []
                 self.alarms = alarm_storage.load_alarms()
                 self.send(json.dumps(self.alarms))
             else:
-                alarm_storage.save_alarms(self.alarms)
+                alarm_storage.save_alarms(self.alarms) # Guardo la configuración de alarmas recibida desde la app
 
     def register(self):
         # Nordic UART Service (NUS)
@@ -157,12 +182,12 @@ class BLE():
         ((self.tx, self.rx,), ) = self.ble.gatts_register_services(SERVICES)
 
     def send(self, data):
-        print(data)
+        # La cantidad máxima de bytes que puedo enviar son 20, asi que divido el mensaje en paquetes de 20 bytes
         chunk_size = 20  # Tamaño máximo del paquete BLE
         for i in range(0, len(data), chunk_size):
             chunk = data[i:i+chunk_size]
             self.ble.gatts_notify(0, self.tx, chunk)
-            utime.sleep_ms(20)  # Añade un pequeño retraso opcional entre paquetes
+            utime.sleep_ms(20)  # Pequeño retraso entre paquetes
 
     def advertiser(self):
         name = bytes(self.name, 'UTF-8')
@@ -171,10 +196,14 @@ class BLE():
     def is_connected(self):
         return self.connected_status
     
-# test
-led = Pin(2, Pin.OUT)
-ble = BLE("ESP32")
+led = Pin(2, Pin.OUT) # Led indicativo de conexion bluetooth => Si titila esta desconectado, si esta fijo está conectado
+ble = BLE("ESP32") # Inicializo el BLE
 
+def apagar_timbre(pin):
+    timbre.value(0)
+    
+    
+stop.irq(trigger=Pin.IRQ_RISING, handler=apagar_timbre) # Genero una interrupción para manejar el botón de apagar la alarma
 
 while True:
 
@@ -186,16 +215,12 @@ while True:
         current_time[4],  # Hora
         current_time[5]  # Minutos
     )
-
-    # Imprime la fecha y la hora formateadas
-    print("Fecha y hora actual:", formatted_time)
+    tm.numbers(current_time[4], current_time[5]) # Imprimo en el display la hora
     
-    #if ble.is_connected():
-        #ble.send(formatted_time)
     for alarm in ble.getAlarms():
-        if formatted_time == alarm['time'] and alarm['enabled']:
-            print('ALARMA')
+        if formatted_time == alarm['time'] and alarm['enabled'] and current_time[6] == 0: # Me fijo si hay una alarma activada que deba ejecutar, lo ejecuto solo cuando los segundos son  00
+            timbre.value(1)
     
-    # Espera durante 5 segundos
-    utime.sleep(60)
+    # Espera durante 1 segundos
+    utime.sleep(1)
 

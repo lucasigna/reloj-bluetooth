@@ -1,22 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar, View, Text, StyleSheet, ScrollView, Modal, Alert } from 'react-native';
-import { Button, TextInput, Switch, List, IconButton } from 'react-native-paper';
+import { Button, Switch, List, IconButton } from 'react-native-paper';
 import moment from 'moment';
 import BleManager from 'react-native-ble-manager';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import DatePicker from 'react-native-date-picker';
 
 
 export default function App() {
 
-  /* let prevAlarms = [
-    { id: 1, time: '08:00', enabled: true },
-    { id: 2, time: '12:30', enabled: false },
-    { id: 3, time: '18:45', enabled: true },
-  ]; */
-
   const [newAlarmTime, setNewAlarmTime] = useState(new Date());
-  const [showTimePicker, setShowTimePicker] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [device, setDevice] = useState({});
   const [isConnected, setIsConnected] = useState(false);
@@ -52,10 +44,10 @@ export default function App() {
 
 
   useEffect(() => {
-    // Actualiza la hora cada minuto
+    // Actualiza la hora cada segundo
     const intervalId = setInterval(() => {
       setCurrentTime(moment().format('HH:mm'));
-    }, 10000);
+    }, 1000);
 
     // Limpia el intervalo al desmontar el componente
     return () => clearInterval(intervalId);
@@ -90,7 +82,7 @@ export default function App() {
   };
 
   const saveAlarms = () => {
-    // Guardar las alarmas (puedes implementar la lógica de guardado aquí).
+    // Guardar las alarmas.
     console.log('Alarms Saved:', alarms);
     
     const message = JSON.stringify(alarms) + ' '
@@ -106,8 +98,6 @@ export default function App() {
     // Envia cada fragmento por separado
     for (const chunk of chunks) {
       sendMessage(device, chunk);
-      // Puedes agregar un pequeño retraso entre fragmentos si es necesario
-      // await new Promise(resolve => setTimeout(resolve, 100));
     }
 
   };
@@ -198,11 +188,7 @@ export default function App() {
             console.log('Error al recibir datos:', err);
           } else {
             const receivedText = bytesToString(data.value);
-            //const alarms = JSON.parse(receivedText)
-            // Utiliza un separador o marcador especial para indicar el final de cada fragmento
-            const separator = '\0';
             receivedData = receivedData + receivedText;
-            //console.log(receivedText.length);
             if (receivedData[receivedData.length - 1] == ']') {
                 // Datos recibidos
                 console.log(receivedData);
@@ -273,12 +259,10 @@ export default function App() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            {/* Contenido del modal (puedes agregar inputs para la hora y otros detalles) */}
             <DatePicker fadeToColor='#fff' style={styles.datePicker} textColor='#2C3E50' mode='time' date={newAlarmTime} onDateChange={setNewAlarmTime} />
             <Button
               mode="contained"
               onPress={() => {
-                // Lógica para guardar la nueva alarma con la hora ingresada
                 addAlarm()
                 toggleModal();
               }}
@@ -292,7 +276,6 @@ export default function App() {
               buttonColor="#D72638"
               style={{borderRadius: 10, margin: 5}}
               onPress={() => {
-                // Lógica para guardar la nueva alarma con la hora ingresada
                 toggleModal();
               }}
             >
@@ -356,7 +339,6 @@ const styles = StyleSheet.create({
     alignContent: "center",
     alignItems: "stretch",
     backgroundColor: "#2C3E50"
-    //backgroundColor: 'red',
   },
   time: {
     fontSize: 60,
