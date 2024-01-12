@@ -2,6 +2,12 @@
 
 Este es un pequeño proyecto personal el cual consiste en el desarrollo de un reloj despertador manejado desde una app con Bluetooth. Mi idea original era hacer un reloj con poco hardware, es decir, que la parte de configurar la hora y las alarmas sea todo a través de una app y no por botones en el equipo que puede llegar a ser más molesto.
 
+Vídeos:
+
+- ![Video](https://youtube.com/shorts/D2IpWZCjyh8?feature=share)
+
+- ![Vídeo](https://youtube.com/shorts/UrRRpMmkkAI?feature=share)
+
 ![](https://github.com/lucasigna/reloj-bluetooth/blob/main/media/banner.jpg)
 
 # Hardware
